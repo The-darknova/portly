@@ -56,8 +56,8 @@ pub enum Commands {
     },
     /// Open the listening service in default browser
     Open {
-        /// Port number to open
-        port: u16,
+        /// Port number to open (optional: auto-detects active web services if omitted)
+        port: Option<u16>,
 
         /// Use HTTPS instead of HTTP
         #[arg(long)]
@@ -308,12 +308,54 @@ pub fn handle_kill(port: u16, force: bool, escalate: bool) {
     }
 }
 
-pub fn handle_open(port: u16, https: bool) {
+pub fn handle_open(port: Option<u16>, https: bool) {
+    let target_port = match port {
+        Some(p) => p,
+        None => {
+            let sockets = portly_core::os::scan_listening_sockets_impl().unwrap_or_default();
+            let web_ports = [3000, 5173, 8080, 8000, 4200, 8081, 8888, 80, 443];
+            let detected_web = sockets.iter().find(|s| web_ports.contains(&s.local_port));
+
+            if let Some(sock) = detected_web {
+                println!(
+                    "No port specified. Detected active web service on port {} ({})",
+                    sock.local_port.to_string().cyan().bold(),
+                    sock.process_name.as_deref().unwrap_or("unknown")
+                );
+                sock.local_port
+            } else if let Some(first_sock) = sockets.iter().find(|s| s.local_port > 1024) {
+                println!(
+                    "No port specified. Detected active service on port {} ({})",
+                    first_sock.local_port.to_string().cyan().bold(),
+                    first_sock.process_name.as_deref().unwrap_or("unknown")
+                );
+                first_sock.local_port
+            } else {
+                eprintln!(
+                    "{}: No active listening web ports found. Specify a port: 'portly open <PORT>'",
+                    "Notice".yellow().bold()
+                );
+                return;
+            }
+        }
+    };
+
+    if let Ok(sockets) = portly_core::os::scan_listening_sockets_impl() {
+        let is_listening = sockets.iter().any(|s| s.local_port == target_port);
+        if !is_listening {
+            println!(
+                "{}: No active process detected listening on port {}. If your server is not running, the browser may report 'Connection refused'.",
+                "Note".yellow().bold(),
+                target_port.to_string().yellow()
+            );
+        }
+    }
+
     println!(
         "Opening port {} in default browser...",
-        port.to_string().green()
+        target_port.to_string().green().bold()
     );
-    if let Err(e) = portly_core::actions::open_in_browser(port, https) {
+    if let Err(e) = portly_core::actions::open_in_browser(target_port, https) {
         eprintln!("{}: {}", "Failed to open browser".red().bold(), e);
         std::process::exit(1);
     }
