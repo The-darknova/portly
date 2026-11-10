@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use colored::*;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
@@ -80,6 +80,11 @@ pub enum Commands {
         #[arg(short, long)]
         reveal: bool,
     },
+    /// Generate shell auto-completion script
+    Completions {
+        /// Target shell (bash, zsh, fish, powershell, elvish)
+        shell: clap_complete::Shell,
+    },
     /// Launch the desktop GUI
     Gui,
 }
@@ -112,6 +117,10 @@ pub fn execute_cli_command(cli: Cli) {
             reveal,
         } => {
             handle_cwd(port, terminal, editor, reveal);
+        }
+        Commands::Completions { shell } => {
+            let mut cmd = Cli::command();
+            clap_complete::generate(shell, &mut cmd, "portly", &mut std::io::stdout());
         }
         Commands::Gui => {
             println!("Launching Portly Desktop GUI...");

@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 portly-core = { path = "../portly-core" }
 clap.workspace = true
+clap_complete.workspace = true
 comfy-table.workspace = true
 colored.workspace = true
 serde.workspace = true
