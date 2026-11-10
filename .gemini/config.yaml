@@ -1,0 +1,11 @@
+# Antigravity CLI project configuration for Portly
+project:
+  name: portly
+  description: "Cross-platform port and process manager with unified CLI and Tauri v2 desktop GUI"
+  type: rust-tauri
+
+skills:
+  - name: portly-dev
+    path: .gemini/skills/portly-dev
+  - name: portly-release
+    path: .gemini/skills/portly-release

@@ -1,0 +1,23 @@
+[package]
+name = "portly"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "portly"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+portly-core = { path = "../crates/portly-core" }
+portly-cli = { path = "../crates/portly-cli" }
+tauri = { version = "2", features = ["tray-icon"] }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+clap.workspace = true
+tracing.workspace = true

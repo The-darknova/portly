@@ -1,0 +1,28 @@
+[workspace]
+members = [
+    "crates/portly-core",
+    "crates/portly-cli",
+    "src-tauri",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Portly Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/danny/portly"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tracing = "0.1"
+clap = { version = "4.5", features = ["derive", "cargo"] }
+comfy-table = "7.1"
+colored = "3.0"
+open = "5.3"
+tokio = { version = "1.43", features = ["full"] }
+sysinfo = "0.33"
+netstat2 = "0.11"
+which = "7.0"

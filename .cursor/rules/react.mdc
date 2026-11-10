@@ -1,0 +1,13 @@
+---
+description: React 19 and UI standards for Portly frontend
+globs: ui/**/*
+---
+# React 19 & Frontend Standards for Portly
+
+- Use React 19 with functional components and modern hooks.
+- Strict TypeScript: no `any` types.
+- Styling: Tailwind CSS with clean utility classes and dark/light mode support.
+- Icons: Lucide React (`lucide-react`).
+- Responsive virtualized list or optimized table to render high socket counts smoothly without frame drops.
+- Accessible keyboard shortcuts (e.g., `Ctrl+F` to search, `Esc` to clear, `Enter` to open).
+- Keep state local where possible, and lift to custom hooks (`usePortScanner`) for socket polling.

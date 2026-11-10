@@ -1,0 +1,12 @@
+---
+description: Rust engineering rules and patterns for Portly
+globs: **/*.rs, Cargo.toml
+---
+# Rust Standards for Portly
+
+- Use Rust 2021 edition with strict clippy checks.
+- Handle all errors explicitly with `thiserror` for library crates and `anyhow` for binaries.
+- Avoid `.unwrap()` and `.expect()` in non-test production code. Propagate errors with `?`.
+- Ensure cross-platform conditional compilation (`#[cfg(target_os = "...")]`) is well isolated in `crates/portly-core/src/os/`.
+- No em-dashes in docstrings or comments.
+- Zero-mock policy: never use mock network sockets or fake process PIDs in core code.

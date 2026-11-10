@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Portly
+Comment=Cross-platform Port and Process Manager
+Exec=portly
+Icon=portly
+Terminal=false
+Type=Application
+Categories=Development;System;Network;Utility;
+Keywords=port;network;socket;kill;process;listen;
+StartupNotify=true

@@ -1,0 +1,11 @@
+---
+description: Tauri v2 rules and patterns for Portly desktop application
+globs: src-tauri/**/*, src-tauri/tauri.conf.json
+---
+# Tauri v2 Standards for Portly
+
+- Use Tauri v2 plugin architecture and modular command handlers.
+- Strongly type all IPC commands between Rust and React using Serde and TypeScript interfaces.
+- Handle application lifecycle gracefully: background tray vs window closure.
+- Do not block the Tauri main thread: run heavy socket scanning asynchronously using Tokio tasks.
+- For privilege elevation, launch background helper commands via OS-specific mechanisms (`pkexec` on Linux, UAC on Windows).

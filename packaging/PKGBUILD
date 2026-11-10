@@ -1,0 +1,21 @@
+# Maintainer: Danny <danny@omarchy.local>
+pkgname=portly-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Cross-platform port and process manager with unified CLI and Tauri v2 desktop GUI"
+arch=('x86_64' 'aarch64')
+url="https://github.com/danny/portly"
+license=('MIT' 'Apache-2.0')
+depends=('webkit2gtk-4.1' 'openssl' 'libappindicator-gtk3')
+optdepends=(
+    'polkit: for elevated process inspection and termination'
+    'ghostty: terminal integration'
+    'alacritty: terminal integration'
+)
+provides=('portly')
+conflicts=('portly')
+
+package() {
+    install -Dm755 "${srcdir}/portly" "${pkgdir}/usr/bin/portly"
+    install -Dm644 "${srcdir}/portly.desktop" "${pkgdir}/usr/share/applications/portly.desktop"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "portly",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm --filter ui dev",
+    "build": "pnpm --filter ui build",
+    "tauri": "tauri",
+    "tauri:dev": "cargo run -p portly",
+    "cli:list": "cargo run -p portly-cli -- list",
+    "cli:build": "cargo build --release -p portly-cli",
+    "test": "cargo test --all"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.0"
+  }
+}
