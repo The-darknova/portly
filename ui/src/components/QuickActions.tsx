@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Globe, Terminal, FolderOpen, Trash2, ShieldCheck } from "lucide-react";
+import { Globe, Terminal, FolderOpen, Code2, Trash2, ShieldCheck } from "lucide-react";
 import { ListeningSocket } from "../types";
 
 interface QuickActionsProps {
@@ -7,6 +7,7 @@ interface QuickActionsProps {
   onOpenBrowser: (port: number) => void;
   onOpenTerminal: (path: string) => void;
   onOpenFolder: (path: string) => void;
+  onOpenEditor: (path: string) => void;
   onKill: (pid: number, force: boolean, escalate: boolean) => Promise<void>;
 }
 
@@ -15,6 +16,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   onOpenBrowser,
   onOpenTerminal,
   onOpenFolder,
+  onOpenEditor,
   onKill,
 }) => {
   const [confirmKill, setConfirmKill] = useState(false);
@@ -50,6 +52,17 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           className="p-1.5 rounded-md text-slate-400 hover:text-emerald-400 hover:bg-emerald-950/40 border border-transparent hover:border-emerald-800/40 transition-all"
         >
           <Terminal className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Open in Code Editor */}
+      {socket.cwd && (
+        <button
+          onClick={() => onOpenEditor(socket.cwd!)}
+          title={`Open project root in Code Editor (Cursor / VS Code / Zed)`}
+          className="p-1.5 rounded-md text-slate-400 hover:text-cyan-400 hover:bg-cyan-950/40 border border-transparent hover:border-cyan-800/40 transition-all"
+        >
+          <Code2 className="w-4 h-4" />
         </button>
       )}
 

@@ -4,6 +4,8 @@ use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Cell, Color, Row, Table};
 use portly_core::socket::ListeningSocket;
+use std::thread::sleep;
+use std::time::Duration;
 
 #[derive(Parser, Debug)]
 #[command(name = "portly", author, version, about = "Cross-platform port and process manager", long_about = None)]
@@ -20,6 +22,16 @@ pub struct Cli {
 pub enum Commands {
     /// List all active listening ports
     List {
+        /// Filter by protocol (tcp or udp)
+        #[arg(short, long)]
+        proto: Option<String>,
+    },
+    /// Continuously watch active listening ports in the terminal
+    Watch {
+        /// Polling interval in seconds (default: 2)
+        #[arg(short, long, default_value = "2")]
+        interval: u64,
+
         /// Filter by protocol (tcp or udp)
         #[arg(short, long)]
         proto: Option<String>,
@@ -60,6 +72,10 @@ pub enum Commands {
         #[arg(short, long)]
         terminal: bool,
 
+        /// Open working directory in preferred code editor (cursor, code, zed)
+        #[arg(short, long)]
+        editor: bool,
+
         /// Open working directory in file manager
         #[arg(short, long)]
         reveal: bool,
@@ -72,6 +88,9 @@ pub fn execute_cli_command(cli: Cli) {
     match cli.command.unwrap_or(Commands::List { proto: None }) {
         Commands::List { proto } => {
             handle_list(cli.json, proto);
+        }
+        Commands::Watch { interval, proto } => {
+            handle_watch(interval, proto);
         }
         Commands::Find { target } => {
             handle_find(cli.json, &target);
@@ -89,9 +108,10 @@ pub fn execute_cli_command(cli: Cli) {
         Commands::Cwd {
             port,
             terminal,
+            editor,
             reveal,
         } => {
-            handle_cwd(port, terminal, reveal);
+            handle_cwd(port, terminal, editor, reveal);
         }
         Commands::Gui => {
             println!("Launching Portly Desktop GUI...");
@@ -124,6 +144,21 @@ pub fn handle_list(json: bool, proto_filter: Option<String>) {
         println!("{}", serde_json::to_string_pretty(&filtered).unwrap());
     } else {
         render_table(&filtered);
+    }
+}
+
+pub fn handle_watch(interval_secs: u64, proto_filter: Option<String>) {
+    println!("{}", "Watching listening ports (Ctrl+C to stop)...".cyan());
+    loop {
+        // Clear terminal screen using ANSI escape sequence
+        print!("\x1B[2J\x1B[1;1H");
+        println!(
+            "{} - Refreshing every {}s (Ctrl+C to quit)\n",
+            "Portly Live Monitor".green().bold(),
+            interval_secs
+        );
+        handle_list(false, proto_filter.clone());
+        sleep(Duration::from_secs(interval_secs.max(1)));
     }
 }
 
@@ -225,7 +260,7 @@ pub fn handle_open(port: u16, https: bool) {
     }
 }
 
-pub fn handle_cwd(port: u16, terminal: bool, reveal: bool) {
+pub fn handle_cwd(port: u16, terminal: bool, editor: bool, reveal: bool) {
     let sockets = match portly_core::os::scan_listening_sockets_impl() {
         Ok(s) => s,
         Err(e) => {
@@ -262,6 +297,12 @@ pub fn handle_cwd(port: u16, terminal: bool, reveal: bool) {
         }
     }
 
+    if editor {
+        if let Err(e) = portly_core::actions::open_directory_in_editor(&cwd, None) {
+            eprintln!("{}: {}", "Failed to open code editor".red().bold(), e);
+        }
+    }
+
     if reveal {
         if let Err(e) = portly_core::actions::open_directory_in_file_manager(&cwd) {
             eprintln!("{}: {}", "Failed to reveal directory".red().bold(), e);
@@ -279,6 +320,7 @@ pub fn render_table(sockets: &[ListeningSocket]) {
             Cell::new("Port").fg(Color::Green),
             Cell::new("Process").fg(Color::Yellow),
             Cell::new("PID").fg(Color::Magenta),
+            Cell::new("User").fg(Color::White),
             Cell::new("Working Directory (CWD)").fg(Color::Blue),
             Cell::new("Address"),
         ]);
@@ -291,14 +333,22 @@ pub fn render_table(sockets: &[ListeningSocket]) {
             .pid
             .map(|p| p.to_string())
             .unwrap_or_else(|| "-".to_string());
+        let user = s.user.as_deref().unwrap_or("-");
         let cwd = s.cwd.as_deref().unwrap_or("-");
         let addr = &s.local_address;
+
+        let user_cell = if user == "root" || user == "root/system" {
+            Cell::new(user).fg(Color::Red)
+        } else {
+            Cell::new(user).fg(Color::White)
+        };
 
         table.add_row(Row::from(vec![
             Cell::new(proto),
             Cell::new(port).fg(Color::Green),
             Cell::new(name).fg(Color::Yellow),
             Cell::new(pid).fg(Color::Magenta),
+            user_cell,
             Cell::new(cwd),
             Cell::new(addr),
         ]));

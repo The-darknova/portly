@@ -118,6 +118,17 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleOpenEditor = async (path: string) => {
+    if (isTauri) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("execute_action", {
+        req: { port: 0, action: "editor", target_path: path },
+      });
+    } else {
+      alert(`Open editor in: ${path}`);
+    }
+  };
+
   const handleKill = async (pid: number, force: boolean, escalate: boolean) => {
     try {
       if (isTauri) {
@@ -225,6 +236,7 @@ export const App: React.FC = () => {
           onOpenBrowser={handleOpenBrowser}
           onOpenTerminal={handleOpenTerminal}
           onOpenFolder={handleOpenFolder}
+          onOpenEditor={handleOpenEditor}
           onKill={handleKill}
         />
       </main>

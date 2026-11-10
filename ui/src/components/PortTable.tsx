@@ -8,6 +8,7 @@ interface PortTableProps {
   onOpenBrowser: (port: number) => void;
   onOpenTerminal: (path: string) => void;
   onOpenFolder: (path: string) => void;
+  onOpenEditor: (path: string) => void;
   onKill: (pid: number, force: boolean, escalate: boolean) => Promise<void>;
 }
 
@@ -16,6 +17,7 @@ export const PortTable: React.FC<PortTableProps> = ({
   onOpenBrowser,
   onOpenTerminal,
   onOpenFolder,
+  onOpenEditor,
   onKill,
 }) => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
@@ -45,15 +47,17 @@ export const PortTable: React.FC<PortTableProps> = ({
             <th className="py-3 px-4 w-20">Proto</th>
             <th className="py-3 px-4 w-24">Port</th>
             <th className="py-3 px-4 w-44">Process</th>
-            <th className="py-3 px-4 w-24">PID</th>
+            <th className="py-3 px-4 w-20">PID</th>
+            <th className="py-3 px-4 w-24">User</th>
             <th className="py-3 px-4">Working Directory (CWD)</th>
             <th className="py-3 px-4 w-32">Address</th>
-            <th className="py-3 px-4 w-36 text-right">Actions</th>
+            <th className="py-3 px-4 w-40 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800/50">
           {sockets.map((socket, idx) => {
             const isTcp = socket.protocol.toLowerCase() === "tcp";
+            const isRoot = socket.user === "root" || socket.is_elevated;
             const rowKey = `${socket.protocol}-${socket.local_port}-${socket.pid || idx}`;
 
             return (
@@ -97,6 +101,23 @@ export const PortTable: React.FC<PortTableProps> = ({
                   {socket.pid ?? "-"}
                 </td>
 
+                {/* User / Owner */}
+                <td className="py-3 px-4 text-xs">
+                  {socket.user ? (
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                        isRoot
+                          ? "bg-rose-950/60 text-rose-300 border border-rose-800/50"
+                          : "bg-slate-800 text-slate-300 border border-slate-700/50"
+                      }`}
+                    >
+                      {socket.user}
+                    </span>
+                  ) : (
+                    <span className="text-slate-600">-</span>
+                  )}
+                </td>
+
                 {/* Working Directory */}
                 <td className="py-3 px-4 font-mono text-xs text-slate-400 max-w-md">
                   {socket.cwd ? (
@@ -133,6 +154,7 @@ export const PortTable: React.FC<PortTableProps> = ({
                     onOpenBrowser={onOpenBrowser}
                     onOpenTerminal={onOpenTerminal}
                     onOpenFolder={onOpenFolder}
+                    onOpenEditor={onOpenEditor}
                     onKill={onKill}
                   />
                 </td>

@@ -58,6 +58,11 @@ pub async fn execute_action(req: QuickActionRequest) -> Result<(), String> {
             portly_core::actions::open_directory_in_file_manager(std::path::Path::new(&path))
                 .map_err(|e| e.to_string())
         }
+        "editor" => {
+            let path = req.target_path.ok_or("Missing target_path")?;
+            portly_core::actions::open_directory_in_editor(std::path::Path::new(&path), None)
+                .map_err(|e| e.to_string())
+        }
         other => Err(format!("Unknown action: {other}")),
     })
     .await
