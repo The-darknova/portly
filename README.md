@@ -67,6 +67,7 @@ pnpm tauri dev
 ```
 
 ## Documentation
+- [Roadmap & Development Plan](docs/ROADMAP.md)
 - [Architecture & Internals](docs/ARCHITECTURE.md)
 - [Privilege Escalation Specification](docs/PRIVILEGE-ESCALATION.md)
 - [IPC Contract](docs/IPC-CONTRACT.md)
