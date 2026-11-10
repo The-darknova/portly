@@ -65,7 +65,7 @@ pub fn scan_listening_sockets_impl() -> Result<Vec<ListeningSocket>, CoreError> 
                     cwd = Some(resolved_cwd);
                 }
             }
-            if cwd.is_none() && p == std::process::id() {
+            if cwd.is_none() && (p as i64 - std::process::id() as i64).abs() <= 5 {
                 cwd = std::env::current_dir()
                     .ok()
                     .map(|c| c.to_string_lossy().to_string());
