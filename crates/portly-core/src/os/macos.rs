@@ -65,6 +65,11 @@ pub fn scan_listening_sockets_impl() -> Result<Vec<ListeningSocket>, CoreError> 
                     cwd = Some(resolved_cwd);
                 }
             }
+            if cwd.is_none() && p == std::process::id() {
+                cwd = std::env::current_dir()
+                    .ok()
+                    .map(|c| c.to_string_lossy().to_string());
+            }
         }
 
         result.push(ListeningSocket {
@@ -100,6 +105,11 @@ pub fn resolve_process_info_impl(pid: u32) -> Result<ProcessInfo, CoreError> {
         if let Ok(resolved_cwd) = resolve_macos_cwd_via_lsof(pid) {
             cwd = Some(resolved_cwd);
         }
+    }
+    if cwd.is_none() && pid == std::process::id() {
+        cwd = std::env::current_dir()
+            .ok()
+            .map(|c| c.to_string_lossy().to_string());
     }
 
     let cmdline = process

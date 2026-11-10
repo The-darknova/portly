@@ -53,6 +53,11 @@ pub fn scan_listening_sockets_impl() -> Result<Vec<ListeningSocket>, CoreError> 
                 proc_name = Some(process.name().to_string_lossy().to_string());
                 proc_path = process.exe().map(|e| e.to_string_lossy().to_string());
                 cwd = process.cwd().map(|c| c.to_string_lossy().to_string());
+                if cwd.is_none() && p == std::process::id() {
+                    cwd = std::env::current_dir()
+                        .ok()
+                        .map(|c| c.to_string_lossy().to_string());
+                }
                 user = process
                     .user_id()
                     .and_then(|u| users.get_user_by_id(u))
@@ -88,7 +93,12 @@ pub fn resolve_process_info_impl(pid: u32) -> Result<ProcessInfo, CoreError> {
 
     let name = process.name().to_string_lossy().to_string();
     let exe_path = process.exe().map(|e| e.to_string_lossy().to_string());
-    let cwd = process.cwd().map(|c| c.to_string_lossy().to_string());
+    let mut cwd = process.cwd().map(|c| c.to_string_lossy().to_string());
+    if cwd.is_none() && pid == std::process::id() {
+        cwd = std::env::current_dir()
+            .ok()
+            .map(|c| c.to_string_lossy().to_string());
+    }
 
     let cmdline = process
         .cmd()
