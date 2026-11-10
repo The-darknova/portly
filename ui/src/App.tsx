@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Activity, AlertCircle } from "lucide-react";
-import { ListeningSocket, Protocol } from "./types";
+import { ListeningSocket, PortConflict, Protocol } from "./types";
 import { SearchBar } from "./components/SearchBar";
 import { PortTable } from "./components/PortTable";
+import { ConflictBanner } from "./components/ConflictBanner";
 
 // Check if running inside Tauri
 const isTauri = typeof window !== "undefined" && ("__TAURI_INTERNALS__" in window || "__TAURI__" in window);
 
 export const App: React.FC = () => {
   const [sockets, setSockets] = useState<ListeningSocket[]>([]);
+  const [conflicts, setConflicts] = useState<PortConflict[]>([]);
   const [query, setQuery] = useState("");
   const [protocolFilter, setProtocolFilter] = useState<Protocol | "all">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -21,8 +23,12 @@ export const App: React.FC = () => {
     try {
       if (isTauri) {
         const { invoke } = await import("@tauri-apps/api/core");
-        const data = await invoke<ListeningSocket[]>("scan_ports");
+        const [data, conflictData] = await Promise.all([
+          invoke<ListeningSocket[]>("scan_ports"),
+          invoke<PortConflict[]>("detect_conflicts"),
+        ]);
         setSockets(data);
+        setConflicts(conflictData);
       } else {
         // Fallback demo dataset for browser-only development previews
         setSockets([
@@ -228,6 +234,9 @@ export const App: React.FC = () => {
           {errorMessage}
         </div>
       )}
+
+      {/* Port Conflict Alert Banner */}
+      <ConflictBanner conflicts={conflicts} />
 
       {/* Main Port Table */}
       <main className="flex-1 overflow-y-auto">

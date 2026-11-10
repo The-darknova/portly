@@ -7,7 +7,7 @@ pub mod socket;
 
 pub use error::CoreError;
 pub use process::ProcessInfo;
-pub use socket::ListeningSocket;
+pub use socket::{detect_port_conflicts, ListeningSocket, PortConflict, Protocol};
 
 #[cfg(test)]
 mod tests {
@@ -70,5 +70,38 @@ mod tests {
     fn test_browser_url_generation() {
         // Test that open_in_browser validates ports
         assert!(actions::open_in_browser(3000, false).is_ok() || true);
+    }
+
+    #[test]
+    fn test_port_conflict_detection() {
+        let s1 = ListeningSocket {
+            protocol: Protocol::Tcp,
+            local_address: "0.0.0.0".to_string(),
+            local_port: 8080,
+            pid: Some(100),
+            process_name: Some("server1".to_string()),
+            process_path: None,
+            cwd: None,
+            user: None,
+            state: "LISTEN".to_string(),
+            is_elevated: false,
+        };
+        let s2 = ListeningSocket {
+            protocol: Protocol::Tcp,
+            local_address: "127.0.0.1".to_string(),
+            local_port: 8080,
+            pid: Some(200),
+            process_name: Some("server2".to_string()),
+            process_path: None,
+            cwd: None,
+            user: None,
+            state: "LISTEN".to_string(),
+            is_elevated: false,
+        };
+        let conflicts = detect_port_conflicts(&[s1, s2]);
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].port, 8080);
+        assert_eq!(conflicts[0].distinct_pids, vec![100, 200]);
+        assert!(conflicts[0].has_address_collision);
     }
 }

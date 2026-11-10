@@ -85,6 +85,8 @@ pub enum Commands {
         /// Target shell (bash, zsh, fish, powershell, elvish)
         shell: clap_complete::Shell,
     },
+    /// Detect and report conflicting or colliding listening ports
+    Conflicts,
     /// Launch the desktop GUI
     Gui,
 }
@@ -121,6 +123,9 @@ pub fn execute_cli_command(cli: Cli) {
         Commands::Completions { shell } => {
             let mut cmd = Cli::command();
             clap_complete::generate(shell, &mut cmd, "portly", &mut std::io::stdout());
+        }
+        Commands::Conflicts => {
+            handle_conflicts(cli.json);
         }
         Commands::Gui => {
             println!("Launching Portly Desktop GUI...");
@@ -201,6 +206,51 @@ pub fn handle_find(json: bool, target: &str) {
         );
     } else {
         render_table(&matches);
+    }
+}
+
+pub fn handle_conflicts(json: bool) {
+    let sockets = match portly_core::os::scan_listening_sockets_impl() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("{}: {}", "Error scanning sockets".red().bold(), e);
+            std::process::exit(1);
+        }
+    };
+
+    let conflicts = portly_core::detect_port_conflicts(&sockets);
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&conflicts).unwrap());
+    } else if conflicts.is_empty() {
+        println!(
+            "{}",
+            "✓ No port conflicts detected across active sockets."
+                .green()
+                .bold()
+        );
+    } else {
+        println!(
+            "{}: Found {} port conflict(s) across active sockets!\n",
+            "WARNING".red().bold(),
+            conflicts.len()
+        );
+        for c in &conflicts {
+            println!(
+                "• Port {} ({:?}) - Competing PIDs: {:?}",
+                c.port.to_string().yellow().bold(),
+                c.protocol,
+                c.distinct_pids
+            );
+            for s in &c.sockets {
+                println!(
+                    "    - Address: {:<15} | Process: {:<15} | PID: {:?}",
+                    s.local_address,
+                    s.process_name.as_deref().unwrap_or("-"),
+                    s.pid
+                );
+            }
+        }
     }
 }
 

@@ -64,6 +64,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::scan_ports,
+            commands::detect_conflicts,
             commands::kill_process,
             commands::execute_action
         ])

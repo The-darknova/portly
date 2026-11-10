@@ -13,6 +13,14 @@ export interface ListeningSocket {
   is_elevated: boolean;
 }
 
+export interface PortConflict {
+  port: number;
+  protocol: Protocol;
+  sockets: ListeningSocket[];
+  distinct_pids: number[];
+  has_address_collision: boolean;
+}
+
 export interface KillRequest {
   pid: number;
   force: boolean;

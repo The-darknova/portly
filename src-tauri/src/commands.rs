@@ -1,4 +1,4 @@
-use portly_core::socket::ListeningSocket;
+use portly_core::socket::{ListeningSocket, PortConflict};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -20,6 +20,16 @@ pub struct QuickActionRequest {
 pub async fn scan_ports() -> Result<Vec<ListeningSocket>, String> {
     tokio::task::spawn_blocking(|| {
         portly_core::os::scan_listening_sockets_impl().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn detect_conflicts() -> Result<Vec<PortConflict>, String> {
+    tokio::task::spawn_blocking(|| {
+        let sockets = portly_core::os::scan_listening_sockets_impl().map_err(|e| e.to_string())?;
+        Ok(portly_core::detect_port_conflicts(&sockets))
     })
     .await
     .map_err(|e| e.to_string())?
