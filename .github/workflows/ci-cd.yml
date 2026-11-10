@@ -3,7 +3,9 @@ name: Portly Multi-Platform CI/CD
 on:
   push:
     branches: ["main"]
-    tags: ["v*"]
+    tags:
+      - "v*"
+      - "[0-9]+.*"
   pull_request:
     branches: ["main"]
 
@@ -19,15 +21,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'pnpm'
@@ -43,7 +45,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Rust Cache
-        uses: swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2
 
       - name: Install Linux build dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -81,15 +83,15 @@ jobs:
             os: windows-latest
             args: ''
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: 'pnpm'
@@ -119,9 +121,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'Portly v__VERSION__'
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v__VERSION__' }}
+          releaseName: 'Portly ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format("v{0}", "0.1.0") }}'
           releaseBody: 'See the assets to download Portly for your operating system.'
           releaseDraft: true
-          prerelease: false
+          prerelease: ${{ startsWith(github.ref, 'refs/tags/') && contains(github.ref_name, '-') || false }}
           args: ${{ matrix.args }}
+
+  publish-release:
+    name: Publish Release
+    needs: build-tauri
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          echo "Publishing release for tag: $TAG_NAME"
+          if [[ "$TAG_NAME" == *-* ]]; then
+            echo "Publishing as pre-release"
+            gh release edit "$TAG_NAME" --draft=false --prerelease
+          else
+            echo "Publishing as latest stable release"
+            gh release edit "$TAG_NAME" --draft=false --latest
+          fi
