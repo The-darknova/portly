@@ -5,7 +5,7 @@ on:
     branches: ["main"]
     tags:
       - "v*"
-      - "[0-9]+.*"
+      - "[0-9]*"
   pull_request:
     branches: ["main"]
 
@@ -122,8 +122,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v__VERSION__' }}
-          releaseName: 'Portly ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format("v{0}", "0.1.0") }}'
-          releaseBody: 'See the assets to download Portly for your operating system.'
+          releaseName: "Portly ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v__VERSION__' }}"
+          releaseBody: "See the assets to download Portly for your operating system."
           releaseDraft: true
           prerelease: ${{ startsWith(github.ref, 'refs/tags/') && contains(github.ref_name, '-') || false }}
           args: ${{ matrix.args }}
