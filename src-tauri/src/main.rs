@@ -66,7 +66,10 @@ fn main() {
             commands::scan_ports,
             commands::detect_conflicts,
             commands::kill_process,
-            commands::execute_action
+            commands::execute_action,
+            commands::get_config,
+            commands::save_config,
+            commands::toggle_pin_port
         ])
         .run(tauri::generate_context!())
         .expect("error while running portly desktop application");

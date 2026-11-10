@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Activity, AlertCircle } from "lucide-react";
-import { ListeningSocket, PortConflict, Protocol } from "./types";
+import { Activity, AlertCircle, Settings } from "lucide-react";
+import { ListeningSocket, PortConflict, Protocol, PortlyConfig } from "./types";
 import { SearchBar } from "./components/SearchBar";
 import { PortTable } from "./components/PortTable";
 import { ConflictBanner } from "./components/ConflictBanner";
+import { SettingsModal } from "./components/SettingsModal";
 
 // Check if running inside Tauri
 const isTauri = typeof window !== "undefined" && ("__TAURI_INTERNALS__" in window || "__TAURI__" in window);
@@ -16,6 +17,14 @@ export const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [config, setConfig] = useState<PortlyConfig>({
+    preferred_editor: null,
+    preferred_terminal: null,
+    auto_refresh_secs: 2,
+    use_https: false,
+    pinned_ports: [],
+  });
 
   const fetchSockets = useCallback(async () => {
     setIsRefreshing(true);
@@ -23,12 +32,14 @@ export const App: React.FC = () => {
     try {
       if (isTauri) {
         const { invoke } = await import("@tauri-apps/api/core");
-        const [data, conflictData] = await Promise.all([
+        const [data, conflictData, cfg] = await Promise.all([
           invoke<ListeningSocket[]>("scan_ports"),
           invoke<PortConflict[]>("detect_conflicts"),
+          invoke<PortlyConfig>("get_config"),
         ]);
         setSockets(data);
         setConflicts(conflictData);
+        setConfig(cfg);
       } else {
         // Fallback demo dataset for browser-only development previews
         setSockets([
@@ -85,11 +96,54 @@ export const App: React.FC = () => {
   // Periodic background refresh
   useEffect(() => {
     if (!autoRefresh) return;
+    const intervalMs = Math.max(1, config.auto_refresh_secs) * 1000;
     const timer = setInterval(() => {
       fetchSockets();
-    }, 2000);
+    }, intervalMs);
     return () => clearInterval(timer);
-  }, [autoRefresh, fetchSockets]);
+  }, [autoRefresh, config.auto_refresh_secs, fetchSockets]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        fetchSockets();
+      } else if (e.key === "Escape") {
+        if (isSettingsOpen) {
+          setIsSettingsOpen(false);
+        } else if (query) {
+          setQuery("");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fetchSockets, isSettingsOpen, query]);
+
+  const handleSaveConfig = async (newConfig: PortlyConfig) => {
+    if (isTauri) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("save_config", { config: newConfig });
+    }
+    setConfig(newConfig);
+  };
+
+  const handleTogglePin = async (port: number) => {
+    if (isTauri) {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const updated = await invoke<number[]>("toggle_pin_port", { port });
+      setConfig((prev) => ({ ...prev, pinned_ports: updated }));
+    } else {
+      setConfig((prev) => {
+        const exists = prev.pinned_ports.includes(port);
+        const updated = exists
+          ? prev.pinned_ports.filter((p) => p !== port)
+          : [...prev.pinned_ports, port];
+        return { ...prev, pinned_ports: updated };
+      });
+    }
+  };
 
   const handleOpenBrowser = async (port: number) => {
     if (isTauri) {
@@ -169,6 +223,17 @@ export const App: React.FC = () => {
     });
   }, [sockets, protocolFilter, query]);
 
+  // Sort sockets: pinned ports first, then ascending port number
+  const sortedSockets = useMemo(() => {
+    return [...filteredSockets].sort((a, b) => {
+      const aPinned = config.pinned_ports.includes(a.local_port);
+      const bPinned = config.pinned_ports.includes(b.local_port);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      return a.local_port - b.local_port;
+    });
+  }, [filteredSockets, config.pinned_ports]);
+
   const activeTcpCount = useMemo(
     () => sockets.filter((s) => s.protocol.toLowerCase() === "tcp").length,
     [sockets]
@@ -197,7 +262,7 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-mono">
+        <div className="flex items-center gap-3 text-xs font-mono">
           <div className="flex items-center gap-1.5 text-slate-400">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
             TCP: <span className="text-slate-200 font-semibold">{activeTcpCount}</span>
@@ -212,6 +277,13 @@ export const App: React.FC = () => {
               Web Preview
             </div>
           )}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            title="Preferences & Settings"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 border border-slate-700/60 transition"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
@@ -241,7 +313,9 @@ export const App: React.FC = () => {
       {/* Main Port Table */}
       <main className="flex-1 overflow-y-auto">
         <PortTable
-          sockets={filteredSockets}
+          sockets={sortedSockets}
+          pinnedPorts={config.pinned_ports}
+          onTogglePin={handleTogglePin}
           onOpenBrowser={handleOpenBrowser}
           onOpenTerminal={handleOpenTerminal}
           onOpenFolder={handleOpenFolder}
@@ -254,12 +328,23 @@ export const App: React.FC = () => {
       <footer className="flex items-center justify-between px-4 py-2 bg-slate-900/90 border-t border-slate-800 text-[11px] text-slate-400 font-mono">
         <div className="flex items-center gap-3">
           <span>Total Listeners: <strong className="text-slate-200">{sockets.length}</strong></span>
-          <span>Showing: <strong className="text-slate-200">{filteredSockets.length}</strong></span>
+          <span>Showing: <strong className="text-slate-200">{sortedSockets.length}</strong></span>
+          {config.pinned_ports.length > 0 && (
+            <span className="text-amber-400">Pinned: <strong>{config.pinned_ports.length}</strong></span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span>CLI: <code className="text-blue-400">portly list</code></span>
         </div>
       </footer>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        config={config}
+        onSave={handleSaveConfig}
+      />
     </div>
   );
 };

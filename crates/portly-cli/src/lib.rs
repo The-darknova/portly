@@ -87,8 +87,33 @@ pub enum Commands {
     },
     /// Detect and report conflicting or colliding listening ports
     Conflicts,
+    /// View or update Portly persistent configuration
+    Config {
+        #[command(subcommand)]
+        action: Option<ConfigAction>,
+    },
     /// Launch the desktop GUI
     Gui,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum ConfigAction {
+    /// Show current configuration values
+    Show,
+    /// Print the filesystem path to config.toml
+    Path,
+    /// Set preferred code editor (cursor, code, zed, subl)
+    SetEditor { editor: String },
+    /// Set preferred terminal emulator (ghostty, kitty, alacritty, wt.exe)
+    SetTerminal { terminal: String },
+    /// Set default polling refresh interval in seconds
+    SetRefresh { interval: u64 },
+    /// Set default HTTPS usage (true/false)
+    SetHttps { enabled: bool },
+    /// Pin a port to the top of the list
+    Pin { port: u16 },
+    /// Unpin a port
+    Unpin { port: u16 },
 }
 
 pub fn execute_cli_command(cli: Cli) {
@@ -126,6 +151,9 @@ pub fn execute_cli_command(cli: Cli) {
         }
         Commands::Conflicts => {
             handle_conflicts(cli.json);
+        }
+        Commands::Config { action } => {
+            handle_config(action, cli.json);
         }
         Commands::Gui => {
             println!("Launching Portly Desktop GUI...");
@@ -456,4 +484,112 @@ pub fn render_table(sockets: &[ListeningSocket]) {
     }
 
     println!("{table}");
+}
+
+pub fn handle_config(action: Option<ConfigAction>, json: bool) {
+    let mut config = portly_core::load_config();
+    let config_path = portly_core::get_config_path();
+
+    match action.unwrap_or(ConfigAction::Show) {
+        ConfigAction::Show => {
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&config).unwrap_or_default()
+                );
+            } else {
+                println!("{}: {}", "Config Path".cyan().bold(), config_path.display());
+                println!(
+                    "{}: {}",
+                    "Preferred Editor".bold(),
+                    config
+                        .preferred_editor
+                        .as_deref()
+                        .unwrap_or("auto-detect (cursor, code, zed)")
+                );
+                println!(
+                    "{}: {}",
+                    "Preferred Terminal".bold(),
+                    config
+                        .preferred_terminal
+                        .as_deref()
+                        .unwrap_or("auto-detect (ghostty, kitty, alacritty)")
+                );
+                println!(
+                    "{}: {}s",
+                    "Refresh Interval".bold(),
+                    config.auto_refresh_secs
+                );
+                println!("{}: {}", "Use HTTPS Default".bold(), config.use_https);
+                println!(
+                    "{}: {:?}",
+                    "Pinned Ports".bold(),
+                    if config.pinned_ports.is_empty() {
+                        "none".to_string()
+                    } else {
+                        format!("{:?}", config.pinned_ports)
+                    }
+                );
+            }
+        }
+        ConfigAction::Path => {
+            println!("{}", config_path.display());
+        }
+        ConfigAction::SetEditor { editor } => {
+            config.preferred_editor = Some(editor.clone());
+            if let Err(e) = portly_core::save_config(&config) {
+                eprintln!("{}: {}", "Failed to save config".red().bold(), e);
+                std::process::exit(1);
+            }
+            println!("Preferred editor updated to: {}", editor.green().bold());
+        }
+        ConfigAction::SetTerminal { terminal } => {
+            config.preferred_terminal = Some(terminal.clone());
+            if let Err(e) = portly_core::save_config(&config) {
+                eprintln!("{}: {}", "Failed to save config".red().bold(), e);
+                std::process::exit(1);
+            }
+            println!("Preferred terminal updated to: {}", terminal.green().bold());
+        }
+        ConfigAction::SetRefresh { interval } => {
+            config.auto_refresh_secs = interval;
+            if let Err(e) = portly_core::save_config(&config) {
+                eprintln!("{}: {}", "Failed to save config".red().bold(), e);
+                std::process::exit(1);
+            }
+            println!(
+                "Refresh interval updated to: {}s",
+                interval.to_string().green().bold()
+            );
+        }
+        ConfigAction::SetHttps { enabled } => {
+            config.use_https = enabled;
+            if let Err(e) = portly_core::save_config(&config) {
+                eprintln!("{}: {}", "Failed to save config".red().bold(), e);
+                std::process::exit(1);
+            }
+            println!(
+                "HTTPS default set to: {}",
+                enabled.to_string().green().bold()
+            );
+        }
+        ConfigAction::Pin { port } => {
+            if !config.pinned_ports.contains(&port) {
+                config.pinned_ports.push(port);
+                if let Err(e) = portly_core::save_config(&config) {
+                    eprintln!("{}: {}", "Failed to save config".red().bold(), e);
+                    std::process::exit(1);
+                }
+            }
+            println!("Pinned port {}", port.to_string().green().bold());
+        }
+        ConfigAction::Unpin { port } => {
+            config.pinned_ports.retain(|&p| p != port);
+            if let Err(e) = portly_core::save_config(&config) {
+                eprintln!("{}: {}", "Failed to save config".red().bold(), e);
+                std::process::exit(1);
+            }
+            println!("Unpinned port {}", port.to_string().yellow().bold());
+        }
+    }
 }

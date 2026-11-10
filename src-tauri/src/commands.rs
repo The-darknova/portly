@@ -70,10 +70,46 @@ pub async fn execute_action(req: QuickActionRequest) -> Result<(), String> {
         }
         "editor" => {
             let path = req.target_path.ok_or("Missing target_path")?;
-            portly_core::actions::open_directory_in_editor(std::path::Path::new(&path), None)
-                .map_err(|e| e.to_string())
+            let cfg = portly_core::load_config();
+            portly_core::actions::open_directory_in_editor(
+                std::path::Path::new(&path),
+                cfg.preferred_editor.as_deref(),
+            )
+            .map_err(|e| e.to_string())
         }
         other => Err(format!("Unknown action: {other}")),
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn get_config() -> Result<portly_core::PortlyConfig, String> {
+    tokio::task::spawn_blocking(portly_core::load_config)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_config(config: portly_core::PortlyConfig) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        portly_core::save_config(&config).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn toggle_pin_port(port: u16) -> Result<Vec<u16>, String> {
+    tokio::task::spawn_blocking(move || {
+        let mut cfg = portly_core::load_config();
+        if let Some(pos) = cfg.pinned_ports.iter().position(|&p| p == port) {
+            cfg.pinned_ports.remove(pos);
+        } else {
+            cfg.pinned_ports.push(port);
+        }
+        portly_core::save_config(&cfg).map_err(|e| e.to_string())?;
+        Ok(cfg.pinned_ports)
     })
     .await
     .map_err(|e| e.to_string())?

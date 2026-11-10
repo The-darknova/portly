@@ -33,3 +33,11 @@ export interface QuickActionRequest {
   action: "browser" | "terminal" | "file_manager" | "editor";
   target_path?: string;
 }
+
+export interface PortlyConfig {
+  preferred_editor?: string | null;
+  preferred_terminal?: string | null;
+  auto_refresh_secs: number;
+  use_https: boolean;
+  pinned_ports: number[];
+}

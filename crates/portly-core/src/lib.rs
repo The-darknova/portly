@@ -1,10 +1,12 @@
 pub mod actions;
+pub mod config;
 pub mod error;
 pub mod killer;
 pub mod os;
 pub mod process;
 pub mod socket;
 
+pub use config::{get_config_path, load_config, save_config, PortlyConfig};
 pub use error::CoreError;
 pub use process::ProcessInfo;
 pub use socket::{detect_port_conflicts, ListeningSocket, PortConflict, Protocol};
@@ -103,5 +105,26 @@ mod tests {
         assert_eq!(conflicts[0].port, 8080);
         assert_eq!(conflicts[0].distinct_pids, vec![100, 200]);
         assert!(conflicts[0].has_address_collision);
+    }
+
+    #[test]
+    fn test_config_serialization() {
+        let config = PortlyConfig {
+            preferred_editor: Some("cursor".to_string()),
+            preferred_terminal: Some("ghostty".to_string()),
+            auto_refresh_secs: 5,
+            use_https: true,
+            pinned_ports: vec![3000, 8080],
+        };
+
+        let serialized = toml::to_string_pretty(&config).expect("Must serialize to TOML");
+        let deserialized: PortlyConfig =
+            toml::from_str(&serialized).expect("Must deserialize from TOML");
+
+        assert_eq!(deserialized.preferred_editor, Some("cursor".to_string()));
+        assert_eq!(deserialized.preferred_terminal, Some("ghostty".to_string()));
+        assert_eq!(deserialized.auto_refresh_secs, 5);
+        assert!(deserialized.use_https);
+        assert_eq!(deserialized.pinned_ports, vec![3000, 8080]);
     }
 }

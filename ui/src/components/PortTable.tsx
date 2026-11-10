@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { Copy, Check, ShieldAlert, Cpu } from "lucide-react";
+import { Copy, Check, ShieldAlert, Cpu, Star } from "lucide-react";
 import { ListeningSocket } from "../types";
 import { QuickActions } from "./QuickActions";
 
 interface PortTableProps {
   sockets: ListeningSocket[];
+  pinnedPorts: number[];
+  onTogglePin: (port: number) => void;
   onOpenBrowser: (port: number) => void;
   onOpenTerminal: (path: string) => void;
   onOpenFolder: (path: string) => void;
@@ -14,6 +16,8 @@ interface PortTableProps {
 
 export const PortTable: React.FC<PortTableProps> = ({
   sockets,
+  pinnedPorts,
+  onTogglePin,
   onOpenBrowser,
   onOpenTerminal,
   onOpenFolder,
@@ -80,7 +84,22 @@ export const PortTable: React.FC<PortTableProps> = ({
 
                 {/* Port */}
                 <td className="py-3 px-4 font-mono font-bold text-emerald-400 text-sm">
-                  {socket.local_port}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => onTogglePin(socket.local_port)}
+                      title={pinnedPorts.includes(socket.local_port) ? "Unpin port" : "Pin port to top"}
+                      className="p-0.5 rounded transition"
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 ${
+                          pinnedPorts.includes(socket.local_port)
+                            ? "text-amber-400 fill-amber-400"
+                            : "text-slate-600 opacity-0 group-hover:opacity-100 hover:text-amber-400"
+                        }`}
+                      />
+                    </button>
+                    <span>{socket.local_port}</span>
+                  </div>
                 </td>
 
                 {/* Process Name */}
