@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.portly.app",
   "build": {
-    "beforeDevCommand": "pnpm --filter ui dev",
+    "beforeDevCommand": "pnpm --filter portly-ui dev",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "pnpm --filter ui build",
+    "beforeBuildCommand": "pnpm --filter portly-ui build",
     "frontendDist": "../ui/dist"
   },
   "app": {

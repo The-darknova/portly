@@ -46,8 +46,7 @@ pub fn detect_port_conflicts(sockets: &[ListeningSocket]) -> Vec<PortConflict> {
     for ((protocol, port), sock_list) in groups {
         if sock_list.len() > 1 {
             let pids: HashSet<u32> = sock_list.iter().filter_map(|s| s.pid).collect();
-            let addrs: HashSet<&str> =
-                sock_list.iter().map(|s| s.local_address.as_str()).collect();
+            let addrs: HashSet<&str> = sock_list.iter().map(|s| s.local_address.as_str()).collect();
             let has_wildcard = addrs.contains("0.0.0.0") || addrs.contains("::");
             let has_specific = addrs.iter().any(|&a| a != "0.0.0.0" && a != "::");
 
