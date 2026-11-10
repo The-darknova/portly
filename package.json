@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "pnpm --filter ui dev",
-    "build": "pnpm --filter ui build",
+    "dev": "pnpm --filter portly-ui dev",
+    "build": "pnpm --filter portly-ui build",
     "tauri": "tauri",
     "tauri:dev": "cargo run -p portly",
     "cli:list": "cargo run -p portly-cli -- list",
