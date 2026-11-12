@@ -18,55 +18,133 @@ Portly lets developers and system administrators instantly see what is listening
 
 ## Quick Start
 
-### Installation & CLI Usage
+### Installation
+
+Choose the installation method for your platform:
+
+- **Arch Linux / Omarchy**:
+  ```bash
+  cd packaging && makepkg -si
+  ```
+- **From Source (Cargo & Rust)**:
+  ```bash
+  cargo install --path crates/portly-cli
+  ```
+- **Pre-built Packages**: Download `.deb`, `.AppImage`, `.dmg`, or `.msi` installers from [GitHub Releases](https://github.com/danny/portly/releases).
+
+---
+
+### Command-Line Interface (CLI)
+
+#### 1. Inspecting Listening Ports
 ```bash
 # List all active listening ports in a formatted table
 portly list
 
-# List in JSON format for scripts or automation pipelines
+# Filter by protocol or emit machine-readable JSON for scripting
+portly list --proto tcp
 portly list --json
 
-# Find what is running on port 3000
+# Find a specific port or process by name or number
 portly find 3000
+portly find node
 
-# Print the working directory of the process holding port 3000
-portly cwd 3000
-
-# Terminate process holding port 3000 gracefully (or with --force, --elevated)
-portly kill 3000
-portly kill 3000 --force --elevated
-
-# Open port in your default browser
-portly open 3000
-
-# Check for dual-stack or wildcard port collisions
+# Check for port collisions (e.g. 0.0.0.0 vs 127.0.0.1 dual-binds)
 portly conflicts
 
-# Live terminal monitor mode (auto-refreshes every 2 seconds)
+# Live terminal monitor (refreshes every 2 seconds)
 portly watch --interval 2
+```
 
-# Generate shell completions for your shell
+#### 2. Quick Actions: Browser, Editor, and Terminal
+```bash
+# Open listening service in default web browser
+portly open 3000
+
+# Print the process working directory (CWD)
+portly cwd 3000
+
+# Open process working directory directly in your preferred editor (VS Code, Cursor, Zed)
+portly cwd 3000 --editor
+
+# Open a new terminal session at the process working directory
+portly cwd 3000 --terminal
+
+# Reveal the folder in your system file manager
+portly cwd 3000 --reveal
+```
+
+#### 3. Terminating Processes
+```bash
+# Gracefully terminate the process on port 3000 (SIGTERM)
+portly kill 3000
+
+# Forcefully terminate with privilege escalation (pkexec on Linux, UAC on Windows)
+portly kill 3000 --force --escalate
+```
+
+#### 4. Persistent Configuration
+```bash
+# View current settings and config file location
+portly config show
+portly config path
+
+# Configure default editor and terminal
+portly config set-editor cursor
+portly config set-terminal ghostty
+
+# Pin critical ports to the top of the list
+portly config pin 5432
+```
+
+#### 5. Shell Auto-Completions
+```bash
+# Generate shell completions
 portly completions zsh > ~/.zsh/completion/_portly
 portly completions fish > ~/.config/fish/completions/portly.fish
 portly completions bash > /etc/bash_completion.d/portly
-
-# Launch desktop GUI
-portly
 ```
 
-### Development Setup
+---
+
+### Desktop GUI & System Tray
+
+Launch the desktop window and background tray monitor:
+
 ```bash
-# Install frontend dependencies
+# Launch GUI directly from terminal
+portly
+# or explicitly
+portly gui
+```
+
+Or launch **Portly** directly from your desktop application launcher (e.g. Rofi, Omarchy Menu, Spotlight, Start Menu).
+
+---
+
+### Development Setup
+
+To build and run Portly from source in a local development environment:
+
+```bash
+# 1. Clone the repository and install dependencies
+git clone https://github.com/danny/portly.git
+cd portly
 pnpm install
 
-# Run CLI locally
+# 2. Run the CLI directly via Cargo
 cargo run -p portly-cli -- list
 
-# Run desktop GUI in dev mode
+# 3. Launch the desktop GUI in hot-reloading development mode
 pnpm tauri dev
+
+# 4. Run the full test suite and linters
+cargo test --all
+cargo clippy --all-targets --all-features -- -D warnings
 ```
 
 ## Documentation
+- [Contributor Guidelines](CONTRIBUTING.md)
 - [Roadmap & Development Plan](docs/ROADMAP.md)
 - [Architecture & Internals](docs/ARCHITECTURE.md)
 - [Privilege Escalation Specification](docs/PRIVILEGE-ESCALATION.md)
