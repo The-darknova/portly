@@ -2,6 +2,7 @@
   "name": "portly",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
   "scripts": {
     "dev": "pnpm --filter portly-ui dev",
     "build": "pnpm --filter portly-ui build",

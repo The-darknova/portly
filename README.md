@@ -151,3 +151,12 @@ cargo clippy --all-targets --all-features -- -D warnings
 - [IPC Contract](docs/IPC-CONTRACT.md)
 - [OS Support Matrix](docs/OS-SUPPORT.md)
 - [AI Contributor Guidelines](AGENTS.md)
+
+---
+
+## License
+
+Portly is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
+
+See [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE) for details.
+
