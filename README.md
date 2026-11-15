@@ -31,6 +31,7 @@ Choose the installation method for your platform:
   cargo install --path crates/portly-cli
   ```
 - **Pre-built Packages**: Download `.deb`, `.AppImage`, `.dmg`, or `.msi` installers from [GitHub Releases](https://github.com/danny/portly/releases).
+- **macOS note**: Release builds are ad-hoc signed, not notarized. If macOS says the app is "damaged" or from an unidentified developer, run `xattr -dr com.apple.quarantine /Applications/Portly.app`, or right-click the app and choose Open.
 
 ---
 
