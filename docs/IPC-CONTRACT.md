@@ -39,6 +39,23 @@ export interface QuickActionRequest {
   target_path?: string;
   editor?: "code" | "cursor" | "zed";
 }
+
+export type CliLinkState =
+  | "SystemManaged"
+  | "Linked"
+  | "LinkedNotInPath"
+  | "NotLinked";
+
+export interface CliLinkStatus {
+  state: CliLinkState;
+  cli_name: string;
+  source_executable: string;
+  link_path: string | null;
+  active_on_path: string | null;
+  in_path: boolean;
+  can_uninstall: boolean;
+  message: string;
+}
 ```
 
 ## Tauri Commands (Invocations)
@@ -54,6 +71,18 @@ export interface QuickActionRequest {
 ### `execute_action`
 - **Signature**: `execute_action(req: QuickActionRequest) -> Result<(), String>`
 - **Description**: Opens default web browser, terminal in CWD, file explorer, or designated editor.
+
+### `get_cli_link_status`
+- **Signature**: `get_cli_link_status() -> Result<CliLinkStatus, String>`
+- **Description**: Checks whether the `portly` CLI command is linked and available on `PATH`.
+
+### `install_cli_link`
+- **Signature**: `install_cli_link() -> Result<CliLinkStatus, String>`
+- **Description**: Links the `portly` CLI binary onto `PATH` (macOS `/usr/local/bin/portly`, Linux AppImage `~/.local/bin/portly`, Windows User `PATH`).
+
+### `uninstall_cli_link`
+- **Signature**: `uninstall_cli_link() -> Result<CliLinkStatus, String>`
+- **Description**: Removes a Portly-managed CLI symlink or User `PATH` registration.
 
 ## Tauri Events (Push from Backend)
 

@@ -15,6 +15,6 @@ This document outlines platform capabilities, APIs, and limitations across Linux
 | **Open in Explorer** | `xdg-open <dir>` | `open <dir>` | `explorer.exe <dir>` |
 
 ## Known Caveats
-1. **Linux Containers & Namespaces**: Sockets inside Docker containers or isolated network namespaces are visible only if scanning from the host with sufficient capabilities (`CAP_NET_ADMIN`).
-2. **macOS App Sandbox**: To inspect arbitrary system sockets and processes on macOS, the application cannot run inside the restrictive App Store sandbox and must be distributed outside the Mac App Store with Developer ID notarization.
-3. **Windows Antivirus**: Heuristic scanners may flag reading process PEBs. Windows APIs are invoked with minimal required access rights (`PROCESS_QUERY_LIMITED_INFORMATION`).
+1. **Linux Containers & Namespaces**: Sockets inside Docker containers or isolated network namespaces are visible only if scanning from the host with sufficient capabilities (`CAP_NET_ADMIN`). For standalone `.AppImage` bundles, use **Preferences -> Install portly in PATH** or `./Portly*.AppImage install-cli` to link `~/.local/bin/portly`.
+2. **macOS App Sandbox & CLI Linking**: To inspect arbitrary system sockets and processes on macOS, the application cannot run inside the restrictive App Store sandbox and must be distributed outside the Mac App Store. Drag-and-drop `.dmg` installs do not run post-install scripts, so use **Preferences -> Install portly in PATH** or `/Applications/Portly.app/Contents/MacOS/portly install-cli` to link `/usr/local/bin/portly`.
+3. **Windows Antivirus & CLI Subsystem**: Heuristic scanners may flag reading process PEBs. Windows APIs are invoked with minimal required access rights (`PROCESS_QUERY_LIMITED_INFORMATION`). Because the GUI binary uses `windows_subsystem = "windows"`, Windows installers bundle the console-subsystem CLI shim at `<InstallDir>\bin\portly.exe` and register that `bin` directory on `PATH`.
