@@ -1,4 +1,5 @@
 use portly_core::socket::{ListeningSocket, PortConflict};
+use portly_core::CliLinkStatus;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -113,4 +114,25 @@ pub async fn toggle_pin_port(port: u16) -> Result<Vec<u16>, String> {
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn get_cli_link_status() -> Result<CliLinkStatus, String> {
+    tokio::task::spawn_blocking(portly_core::get_cli_link_status)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn install_cli_link() -> Result<CliLinkStatus, String> {
+    tokio::task::spawn_blocking(|| portly_core::install_cli_link().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn uninstall_cli_link() -> Result<CliLinkStatus, String> {
+    tokio::task::spawn_blocking(|| portly_core::uninstall_cli_link().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
 }

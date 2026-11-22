@@ -116,6 +116,14 @@ jobs:
       - name: Build frontend
         run: pnpm --filter portly-ui build
 
+      - name: Stage Windows CLI binary for installer
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          cargo build --release -p portly-cli
+          New-Item -ItemType Directory -Force -Path "src-tauri/resources/bin" | Out-Null
+          Copy-Item "target/release/portly-cli.exe" "src-tauri/resources/bin/portly.exe" -Force
+
       - name: Build Tauri Application
         uses: tauri-apps/tauri-action@v1
         env:

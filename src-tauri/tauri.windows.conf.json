@@ -1,0 +1,16 @@
+{
+  "bundle": {
+    "resources": {
+      "resources/bin/": "bin"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "./windows/installer-hooks.nsh"
+      },
+      "wix": {
+        "fragmentPaths": ["./windows/path-env.wxs"],
+        "componentRefs": ["PortlyCliPathEnv"]
+      }
+    }
+  }
+}

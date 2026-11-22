@@ -41,3 +41,20 @@ export interface PortlyConfig {
   use_https: boolean;
   pinned_ports: number[];
 }
+
+export type CliLinkState =
+  | "SystemManaged"
+  | "Linked"
+  | "LinkedNotInPath"
+  | "NotLinked";
+
+export interface CliLinkStatus {
+  state: CliLinkState;
+  cli_name: string;
+  source_executable: string;
+  link_path: string | null;
+  active_on_path: string | null;
+  in_path: boolean;
+  can_uninstall: boolean;
+  message: string;
+}

@@ -92,6 +92,14 @@ pub enum Commands {
         #[command(subcommand)]
         action: Option<ConfigAction>,
     },
+    /// Link or inspect the `portly` command on your system PATH
+    InstallCli {
+        /// Only check and print current CLI link status without modifying PATH
+        #[arg(long)]
+        status: bool,
+    },
+    /// Remove a Portly-managed CLI link or user PATH entry
+    UninstallCli,
     /// Launch the desktop GUI
     Gui,
 }
@@ -155,10 +163,175 @@ pub fn execute_cli_command(cli: Cli) {
         Commands::Config { action } => {
             handle_config(action, cli.json);
         }
+        Commands::InstallCli { status } => {
+            handle_install_cli(status, cli.json);
+        }
+        Commands::UninstallCli => {
+            handle_uninstall_cli(cli.json);
+        }
         Commands::Gui => {
-            println!("Launching Portly Desktop GUI...");
+            handle_gui();
         }
     }
+}
+
+/// When the bundled `bin/portly.exe` CLI shim is invoked as `portly` with no arguments,
+/// launch the sibling desktop GUI executable if present. Standalone `portly-cli` skips this.
+pub fn maybe_launch_bundled_gui() -> bool {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 {
+        return false;
+    }
+
+    let Ok(exe) = std::env::current_exe() else {
+        return false;
+    };
+    let is_portly_shim = exe
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .map(|s| s.eq_ignore_ascii_case("portly"))
+        .unwrap_or(false);
+    if !is_portly_shim {
+        return false;
+    }
+
+    if let Some(gui_exe) = find_sibling_gui_executable(&exe) {
+        if spawn_detached_gui(&gui_exe).is_ok() {
+            return true;
+        }
+    }
+    false
+}
+
+fn find_sibling_gui_executable(current_exe: &std::path::Path) -> Option<std::path::PathBuf> {
+    let bin_name = if cfg!(target_os = "windows") {
+        "portly.exe"
+    } else {
+        "portly"
+    };
+
+    // Bundled layout on Windows: <INSTDIR>\bin\portly.exe -> <INSTDIR>\portly.exe
+    if let Some(install_root) = current_exe.parent().and_then(|p| p.parent()) {
+        let candidate = install_root.join(bin_name);
+        if candidate.exists() && candidate != current_exe {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+fn spawn_detached_gui(gui_exe: &std::path::Path) -> std::io::Result<()> {
+    let mut cmd = std::process::Command::new(gui_exe);
+    cmd.stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    cmd.spawn()?;
+    Ok(())
+}
+
+pub fn handle_gui() {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(gui_exe) = find_sibling_gui_executable(&exe) {
+            match spawn_detached_gui(&gui_exe) {
+                Ok(()) => {
+                    println!("Launching Portly Desktop GUI...");
+                    return;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "{}: {}",
+                        "Failed to launch Portly Desktop GUI".red().bold(),
+                        e
+                    );
+                    std::process::exit(1);
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if std::process::Command::new("open")
+            .args(["-a", "Portly"])
+            .spawn()
+            .is_ok()
+        {
+            println!("Launching Portly Desktop GUI...");
+            return;
+        }
+    }
+
+    if let Ok(path_gui) = which::which("portly") {
+        let current = std::env::current_exe().ok();
+        if current.as_ref() != Some(&path_gui)
+            && std::process::Command::new(&path_gui)
+                .arg("gui")
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .is_ok()
+        {
+            println!("Launching Portly Desktop GUI...");
+            return;
+        }
+    }
+
+    eprintln!(
+        "{}: Portly Desktop GUI binary was not found alongside this CLI.",
+        "Notice".yellow().bold()
+    );
+    std::process::exit(1);
+}
+
+pub fn handle_install_cli(status_only: bool, json: bool) {
+    let result = if status_only {
+        Ok(portly_core::get_cli_link_status())
+    } else {
+        portly_core::install_cli_link()
+    };
+
+    match result {
+        Ok(status) => print_cli_link_status(&status, json),
+        Err(e) => {
+            eprintln!("{}: {}", "Failed to install CLI link".red().bold(), e);
+            std::process::exit(1);
+        }
+    }
+}
+
+pub fn handle_uninstall_cli(json: bool) {
+    match portly_core::uninstall_cli_link() {
+        Ok(status) => print_cli_link_status(&status, json),
+        Err(e) => {
+            eprintln!("{}: {}", "Failed to uninstall CLI link".red().bold(), e);
+            std::process::exit(1);
+        }
+    }
+}
+
+fn print_cli_link_status(status: &portly_core::CliLinkStatus, json: bool) {
+    if json {
+        println!("{}", serde_json::to_string_pretty(status).unwrap());
+        return;
+    }
+
+    let state_label = match status.state {
+        portly_core::CliLinkState::Linked => "Linked".green().bold(),
+        portly_core::CliLinkState::SystemManaged => "System Managed".cyan().bold(),
+        portly_core::CliLinkState::LinkedNotInPath => "Linked (Not in PATH)".yellow().bold(),
+        portly_core::CliLinkState::NotLinked => "Not Linked".red().bold(),
+    };
+
+    println!("{}: {}", "CLI Status".bold(), state_label);
+    println!("{}: {}", "Source Binary".bold(), status.source_executable);
+    if let Some(ref link_path) = status.link_path {
+        println!("{}: {}", "Link Target".bold(), link_path);
+    }
+    if let Some(ref active) = status.active_on_path {
+        println!("{}: {}", "Active on PATH".bold(), active);
+    }
+    println!("{}", status.message);
 }
 
 pub fn handle_list(json: bool, proto_filter: Option<String>) {
@@ -591,5 +764,36 @@ pub fn handle_config(action: Option<ConfigAction>, json: bool) {
             }
             println!("Unpinned port {}", port.to_string().yellow().bold());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cli_parses_install_and_uninstall_commands() {
+        let install_cli = Cli::try_parse_from(["portly", "install-cli"]).unwrap();
+        assert!(matches!(
+            install_cli.command,
+            Some(Commands::InstallCli { status: false })
+        ));
+
+        let status_cli =
+            Cli::try_parse_from(["portly", "--json", "install-cli", "--status"]).unwrap();
+        assert!(status_cli.json);
+        assert!(matches!(
+            status_cli.command,
+            Some(Commands::InstallCli { status: true })
+        ));
+
+        let uninstall_cli = Cli::try_parse_from(["portly", "uninstall-cli"]).unwrap();
+        assert!(matches!(
+            uninstall_cli.command,
+            Some(Commands::UninstallCli)
+        ));
+
+        let gui_cli = Cli::try_parse_from(["portly", "gui"]).unwrap();
+        assert!(matches!(gui_cli.command, Some(Commands::Gui)));
     }
 }

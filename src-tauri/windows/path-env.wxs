@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <?if $(sys.BUILDARCH)="x86"?>
+    <?define PortlyWin64 = "no" ?>
+  <?else?>
+    <?define PortlyWin64 = "yes" ?>
+  <?endif?>
+  <Fragment>
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Id="PortlyCliPathEnv" Guid="7B9F4E2D-8E3A-4C61-9A2F-5D1E4B8A3C91" Win64="$(var.PortlyWin64)">
+        <RegistryValue
+          Root="HKLM"
+          Key="Software\Portly"
+          Name="CliPathInstalled"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+        <Environment
+          Id="PortlyCliPath"
+          Name="Path"
+          Action="set"
+          Part="last"
+          System="yes"
+          Value="[INSTALLDIR]bin"
+          Permanent="no" />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+</Wix>

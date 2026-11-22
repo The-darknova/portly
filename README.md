@@ -30,7 +30,11 @@ Choose the installation method for your platform:
   ```bash
   cargo install --path crates/portly-cli
   ```
-- **Pre-built Packages**: Download `.deb`, `.AppImage`, `.dmg`, or `.msi` installers from [GitHub Releases](https://github.com/danny/portly/releases).
+- **Pre-built Packages**: Download `.deb`, `.AppImage`, `.dmg`, `.msi`, or `-setup.exe` installers from [GitHub Releases](https://github.com/The-darknova/portly/releases).
+- **CLI on `PATH` by Platform**:
+  - **Windows (`.msi` / `-setup.exe`)**: Automatically bundles a dedicated console-subsystem `portly.exe` in `<InstallDir>\bin` and adds it to `PATH`, so `portly` works natively in PowerShell and Command Prompt while desktop shortcuts launch the GUI without flashing a console window.
+  - **macOS (`.dmg`)**: Drag `Portly.app` to `/Applications`, then open **Portly -> Preferences -> Install portly in PATH** (or run `/Applications/Portly.app/Contents/MacOS/portly install-cli`) to symlink `/usr/local/bin/portly`.
+  - **Linux (`.deb` / `.rpm` / Arch)**: Automatically installs `/usr/bin/portly` on `PATH`. For standalone `.AppImage` builds, open **Preferences -> Install portly in PATH** (or run `./Portly*.AppImage install-cli`) to symlink `~/.local/bin/portly`.
 - **macOS note**: Release builds are ad-hoc signed, not notarized. If macOS says the app is "damaged" or from an unidentified developer, run `xattr -dr com.apple.quarantine /Applications/Portly.app`, or right-click the app and choose Open.
 
 ---
@@ -129,7 +133,7 @@ To build and run Portly from source in a local development environment:
 
 ```bash
 # 1. Clone the repository and install dependencies
-git clone https://github.com/danny/portly.git
+git clone https://github.com/The-darknova/portly.git
 cd portly
 pnpm install
 

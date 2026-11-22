@@ -1,6 +1,10 @@
-import React, { useState } from "react";
-import { X, Settings2, Check, Save } from "lucide-react";
-import { PortlyConfig } from "../types";
+import React, { useEffect, useState } from "react";
+import { X, Settings2, Check, Save, Terminal, Link2, Unlink } from "lucide-react";
+import { CliLinkStatus, PortlyConfig } from "../types";
+
+const isTauri =
+  typeof window !== "undefined" &&
+  ("__TAURI_INTERNALS__" in window || "__TAURI__" in window);
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -21,8 +25,63 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [useHttps, setUseHttps] = useState<boolean>(config.use_https);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [cliStatus, setCliStatus] = useState<CliLinkStatus | null>(null);
+  const [isCliBusy, setIsCliBusy] = useState(false);
+  const [cliError, setCliError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !isTauri) return;
+    let active = true;
+    (async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const status = await invoke<CliLinkStatus>("get_cli_link_status");
+        if (active) {
+          setCliStatus(status);
+          setCliError(null);
+        }
+      } catch (err: unknown) {
+        if (active) {
+          setCliError(err instanceof Error ? err.message : String(err));
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleInstallCli = async () => {
+    if (!isTauri) return;
+    setIsCliBusy(true);
+    setCliError(null);
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const status = await invoke<CliLinkStatus>("install_cli_link");
+      setCliStatus(status);
+    } catch (err: unknown) {
+      setCliError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsCliBusy(false);
+    }
+  };
+
+  const handleUninstallCli = async () => {
+    if (!isTauri) return;
+    setIsCliBusy(true);
+    setCliError(null);
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const status = await invoke<CliLinkStatus>("uninstall_cli_link");
+      setCliStatus(status);
+    } catch (err: unknown) {
+      setCliError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsCliBusy(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -128,6 +187,78 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onChange={(e) => setUseHttps(e.target.checked)}
               className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
             />
+          </div>
+
+          {/* Command-Line Integration */}
+          <div className="pt-3 border-t border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  CLI Command (<code className="normal-case text-indigo-300">portly</code>)
+                </span>
+              </div>
+              {cliStatus && (
+                <span
+                  className={`text-[11px] font-medium px-2 py-0.5 rounded border ${
+                    cliStatus.state === "Linked" || cliStatus.state === "SystemManaged"
+                      ? "bg-emerald-950/60 text-emerald-300 border-emerald-800/60"
+                      : cliStatus.state === "LinkedNotInPath"
+                      ? "bg-amber-950/60 text-amber-300 border-amber-800/60"
+                      : "bg-slate-950 text-slate-400 border-slate-800"
+                  }`}
+                >
+                  {cliStatus.state === "SystemManaged"
+                    ? "System Managed"
+                    : cliStatus.state === "Linked"
+                    ? "Linked"
+                    : cliStatus.state === "LinkedNotInPath"
+                    ? "Not in PATH"
+                    : "Not Linked"}
+                </span>
+              )}
+            </div>
+
+            {isTauri ? (
+              <>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {cliStatus ? cliStatus.message : "Checking CLI PATH registration..."}
+                </p>
+                {cliError && (
+                  <p className="text-xs text-rose-400">{cliError}</p>
+                )}
+                {cliStatus && cliStatus.state !== "SystemManaged" && (
+                  <div className="flex items-center gap-2 pt-1">
+                    {cliStatus.state !== "Linked" && (
+                      <button
+                        type="button"
+                        onClick={handleInstallCli}
+                        disabled={isCliBusy}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition disabled:opacity-50"
+                      >
+                        <Link2 className="w-3.5 h-3.5 text-indigo-400" />
+                        {isCliBusy ? "Linking..." : "Install portly in PATH"}
+                      </button>
+                    )}
+                    {cliStatus.can_uninstall && (
+                      <button
+                        type="button"
+                        onClick={handleUninstallCli}
+                        disabled={isCliBusy}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition disabled:opacity-50"
+                      >
+                        <Unlink className="w-3.5 h-3.5 text-slate-400" />
+                        Remove CLI Link
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-slate-400">
+                CLI linking is managed inside the desktop application.
+              </p>
+            )}
           </div>
         </div>
 
