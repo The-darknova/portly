@@ -69,7 +69,10 @@ fn main() {
             commands::execute_action,
             commands::get_config,
             commands::save_config,
-            commands::toggle_pin_port
+            commands::toggle_pin_port,
+            commands::get_cli_link_status,
+            commands::install_cli_link,
+            commands::uninstall_cli_link
         ])
         .run(tauri::generate_context!())
         .expect("error while running portly desktop application");
