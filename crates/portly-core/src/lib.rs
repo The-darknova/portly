@@ -1,4 +1,5 @@
 pub mod actions;
+pub mod cli_link;
 pub mod config;
 pub mod error;
 pub mod killer;
@@ -6,6 +7,9 @@ pub mod os;
 pub mod process;
 pub mod socket;
 
+pub use cli_link::{
+    get_cli_link_status, install_cli_link, uninstall_cli_link, CliLinkState, CliLinkStatus,
+};
 pub use config::{get_config_path, load_config, save_config, PortlyConfig};
 pub use error::CoreError;
 pub use process::ProcessInfo;
